@@ -1,0 +1,42 @@
+name: Python security checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-security:
+    name: Dependency and static security analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-security.txt
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-security.txt
+
+      - name: Audit Python dependencies
+        run: pip-audit --requirement requirements.txt
+
+      - name: Scan Python source with Bandit
+        run: bandit --recursive . --ini .bandit --severity-level medium
