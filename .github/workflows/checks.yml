@@ -82,7 +82,7 @@ jobs:
               --silent \
               --show-error \
               http://127.0.0.1:8080/ \
-              >/tmp/browser-fingerprint-index.html
+              --output /tmp/browser-fingerprint-index.html
             then
               ready=1
               break
@@ -106,7 +106,11 @@ jobs:
             --silent \
             --show-error \
             http://127.0.0.1:8080/browser-fingerprint/ \
-            | grep --quiet "Collect and store one sample"
+            --output /tmp/browser-fingerprint-collection.html
+
+          grep --quiet \
+            "Collect and store one sample" \
+            /tmp/browser-fingerprint-collection.html
 
           headers_response="$(
             curl \
@@ -119,17 +123,16 @@ jobs:
               http://127.0.0.1:8080/api/headers
           )"
 
-          HEADERS_RESPONSE="$headers_response" python3 - <<'PY'
-import json
-import os
+          HEADERS_RESPONSE="$headers_response" python3 -c '
+          import json
+          import os
 
-response = json.loads(os.environ["HEADERS_RESPONSE"])
-
-assert response["accept"] == "application/json"
-assert response["accept_language"] == "en-US"
-assert "authorization" not in response
-assert "Bearer must-not-leak" not in json.dumps(response)
-PY
+          response = json.loads(os.environ["HEADERS_RESPONSE"])
+          assert response["accept"] == "application/json"
+          assert response["accept_language"] == "en-US"
+          assert "authorization" not in response
+          assert "Bearer must-not-leak" not in json.dumps(response)
+          '
 
           fingerprint_response="$(
             curl \
@@ -157,15 +160,14 @@ PY
             exit 1
           fi
 
-          RESPONSE_BODY="$response_body" python3 - <<'PY'
-import json
-import os
+          RESPONSE_BODY="$response_body" python3 -c '
+          import json
+          import os
 
-response = json.loads(os.environ["RESPONSE_BODY"])
-
-assert response["id"] == 1
-assert response["sample_count"] == 1
-assert len(response["order"]) == 19
-PY
+          response = json.loads(os.environ["RESPONSE_BODY"])
+          assert response["id"] == 1
+          assert response["sample_count"] == 1
+          assert len(response["order"]) == 19
+          '
 
           echo "Docker smoke test passed."
