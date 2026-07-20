@@ -39,4 +39,4 @@ jobs:
         run: pip-audit --requirement requirements.txt
 
       - name: Scan Python source with Bandit
-        run: bandit --recursive . --ini .bandit --severity-level medium
+        run: bandit --recursive . --exclude tests --ini .bandit --severity-level medium

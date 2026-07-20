@@ -69,9 +69,11 @@ def insert_fingerprint(payload: Mapping[str, Any]) -> int:
     placeholders = ", ".join("?" for _ in FINGERPRINT_COLUMNS)
     columns = ", ".join(FINGERPRINT_COLUMNS)
 
+    # FINGERPRINT_COLUMNS is a static application-controlled tuple.
+    # Browser-controlled values are bound separately through SQLite placeholders.
     with connect() as connection:
         cursor = connection.execute(
-            f"INSERT INTO fingerprints ({columns}) VALUES ({placeholders})",
+            f"INSERT INTO fingerprints ({columns}) VALUES ({placeholders})",  # nosec B608
             values,
         )
         return int(cursor.lastrowid)
@@ -80,8 +82,9 @@ def insert_fingerprint(payload: Mapping[str, Any]) -> int:
 def read_fingerprints() -> list[dict[str, str]]:
     """Return all collected fingerprints for local exploratory analysis."""
     columns = ", ".join(FINGERPRINT_COLUMNS)
+    # Column names come exclusively from the static FINGERPRINT_COLUMNS tuple.
     with connect() as connection:
         rows = connection.execute(
-            f"SELECT {columns} FROM fingerprints ORDER BY id"
+            f"SELECT {columns} FROM fingerprints ORDER BY id"  # nosec B608
         ).fetchall()
     return [dict(row) for row in rows]
