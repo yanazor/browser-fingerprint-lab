@@ -1,3 +1,3 @@
 [bandit]
-exclude = tests
+# Flask intentionally listens on all interfaces inside its container.
 skips = B104

@@ -17,6 +17,10 @@ jobs:
     name: Dependency and static security analysis
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      security-events: write
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -36,7 +40,76 @@ jobs:
           python -m pip install -r requirements-security.txt
 
       - name: Audit Python dependencies
-        run: pip-audit --requirement requirements.txt
+        id: pip_audit
+        shell: bash
+        run: |
+          set +e
+
+          pip-audit \
+            --requirement requirements.txt \
+            --format json \
+            --output pip-audit.json \
+            --progress-spinner off
+
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Scan Python source with Bandit
-        run: bandit --recursive . --exclude tests --ini .bandit --severity-level medium
+        id: bandit
+        shell: bash
+        run: |
+          set +e
+
+          bandit \
+            --recursive . \
+            --exclude tests \
+            --ini .bandit \
+            --severity-level medium \
+            --format sarif \
+            --output bandit.sarif
+
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Publish readable security summary
+        if: always()
+        run: |
+          python .github/scripts/security_summary.py \
+            --pip-audit pip-audit.json \
+            --bandit bandit.sarif
+
+      - name: Upload Bandit results to Code Scanning
+        if: >-
+          ${{
+            always()
+            && github.event_name != 'pull_request'
+            && hashFiles('bandit.sarif') != ''
+          }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: bandit.sarif
+          category: bandit-python
+
+      - name: Enforce security results
+        if: always()
+        shell: bash
+        run: |
+          pip_audit_status="${{ steps.pip_audit.outputs.exit_code }}"
+          bandit_status="${{ steps.bandit.outputs.exit_code }}"
+
+          echo "pip-audit exit code: ${pip_audit_status:-missing}"
+          echo "Bandit exit code: ${bandit_status:-missing}"
+
+          if [[ "$pip_audit_status" != "0" ]]; then
+            echo "pip-audit found vulnerabilities or failed." >&2
+            exit 1
+          fi
+
+          if [[ "$bandit_status" != "0" ]]; then
+            echo "Bandit found security issues or failed." >&2
+            exit 1
+          fi
+
+          echo "All enforced Python security checks passed."

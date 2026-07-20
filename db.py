@@ -71,6 +71,8 @@ def insert_fingerprint(payload: Mapping[str, Any]) -> int:
 
     # FINGERPRINT_COLUMNS is a static application-controlled tuple.
     # Browser-controlled values are bound separately through SQLite placeholders.
+    # SQL identifiers come only from the static FINGERPRINT_COLUMNS tuple.
+    # Browser-controlled values are bound separately through SQLite placeholders.
     with connect() as connection:
         cursor = connection.execute(
             f"INSERT INTO fingerprints ({columns}) VALUES ({placeholders})",  # nosec B608
@@ -83,6 +85,7 @@ def read_fingerprints() -> list[dict[str, str]]:
     """Return all collected fingerprints for local exploratory analysis."""
     columns = ", ".join(FINGERPRINT_COLUMNS)
     # Column names come exclusively from the static FINGERPRINT_COLUMNS tuple.
+    # Selected identifiers also come exclusively from the static column tuple.
     with connect() as connection:
         rows = connection.execute(
             f"SELECT {columns} FROM fingerprints ORDER BY id"  # nosec B608
