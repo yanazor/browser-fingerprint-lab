@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS fingerprints (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    list_of_plugins TEXT,
+    useragent TEXT,
+    list_of_fonts TEXT,
+    canvas TEXT,
+    language TEXT,
+    resolution TEXT,
+    color_depth TEXT,
+    accept_headers TEXT,
+    timezone TEXT,
+    webgl_renderer TEXT,
+    platform TEXT,
+    webgl_vendor TEXT,
+    content_encoding TEXT,
+    accept_lang TEXT,
+    adblock TEXT,
+    donottrack TEXT,
+    local_storage TEXT,
+    session_storage TEXT,
+    cookie TEXT
+);

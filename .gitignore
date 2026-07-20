@@ -1,0 +1,22 @@
+# Runtime data: never commit collected fingerprints.
+data/*
+!data/.gitkeep
+*.s3db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Runtime/configuration
+.env
+*.log
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/

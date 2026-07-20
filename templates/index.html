@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browser Fingerprint Lab</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='mysite.css') }}">
+</head>
+<body>
+<main>
+  <h1>Browser Fingerprint Lab</h1>
+  <p class="lead">
+    A cleaned public version of a bachelor-thesis prototype for collecting
+    browser attributes and exploring their categorical entropy.
+  </p>
+  <p class="notice">
+    No dataset is included. A fingerprint is collected only after the user
+    explicitly presses the button, and it is stored in the local SQLite database.
+  </p>
+  <a class="button" href="{{ url_for('browser_fingerprint') }}">Open the local demo</a>
+</main>
+</body>
+</html>
