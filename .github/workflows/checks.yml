@@ -1,4 +1,4 @@
-name: Python checks
+name: Python and Docker checks
 
 on:
   push:
@@ -13,7 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  checks:
+  python:
+    name: Python syntax
     runs-on: ubuntu-latest
 
     steps:
@@ -34,3 +35,14 @@ jobs:
 
       - name: Check Python syntax
         run: python -m compileall -q .
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build --tag browser-fingerprint-lab:ci .
