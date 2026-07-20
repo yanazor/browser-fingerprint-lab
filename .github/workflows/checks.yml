@@ -42,7 +42,7 @@ jobs:
         run: python -m pytest -q
 
   docker:
-    name: Docker build
+    name: Docker build and smoke test
     runs-on: ubuntu-latest
 
     steps:
@@ -51,3 +51,121 @@ jobs:
 
       - name: Build Docker image
         run: docker build --tag browser-fingerprint-lab:ci .
+
+      - name: Start container and test application
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          container_name="browser-fingerprint-lab-ci"
+
+          cleanup() {
+            echo
+            echo "Container logs:"
+            docker logs "$container_name" 2>&1 || true
+            docker rm --force "$container_name" >/dev/null 2>&1 || true
+          }
+
+          trap cleanup EXIT
+
+          docker run \
+            --detach \
+            --name "$container_name" \
+            --publish 127.0.0.1:8080:8080 \
+            browser-fingerprint-lab:ci
+
+          ready=0
+
+          for attempt in $(seq 1 30); do
+            if curl \
+              --fail \
+              --silent \
+              --show-error \
+              http://127.0.0.1:8080/ \
+              >/tmp/browser-fingerprint-index.html
+            then
+              ready=1
+              break
+            fi
+
+            echo "Waiting for the application: attempt $attempt/30"
+            sleep 1
+          done
+
+          if [[ "$ready" -ne 1 ]]; then
+            echo "Application did not become ready." >&2
+            exit 1
+          fi
+
+          grep --quiet \
+            "Browser Fingerprint Lab" \
+            /tmp/browser-fingerprint-index.html
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            http://127.0.0.1:8080/browser-fingerprint/ \
+            | grep --quiet "Collect and store one sample"
+
+          headers_response="$(
+            curl \
+              --fail \
+              --silent \
+              --show-error \
+              --header "Accept: application/json" \
+              --header "Accept-Language: en-US" \
+              --header "Authorization: Bearer must-not-leak" \
+              http://127.0.0.1:8080/api/headers
+          )"
+
+          HEADERS_RESPONSE="$headers_response" python3 - <<'PY'
+import json
+import os
+
+response = json.loads(os.environ["HEADERS_RESPONSE"])
+
+assert response["accept"] == "application/json"
+assert response["accept_language"] == "en-US"
+assert "authorization" not in response
+assert "Bearer must-not-leak" not in json.dumps(response)
+PY
+
+          fingerprint_response="$(
+            curl \
+              --silent \
+              --show-error \
+              --write-out $'\n%{http_code}' \
+              --header "Content-Type: application/json" \
+              --data '{
+                "useragent": "docker-ci-smoke-test",
+                "language": "en-US",
+                "canvas": "synthetic-canvas-value",
+                "local_storage": true,
+                "session_storage": true,
+                "cookie": false
+              }' \
+              http://127.0.0.1:8080/api/fingerprints
+          )"
+
+          response_body="${fingerprint_response%$'\n'*}"
+          response_code="${fingerprint_response##*$'\n'}"
+
+          if [[ "$response_code" != "201" ]]; then
+            echo "Unexpected response code: $response_code" >&2
+            echo "$response_body" >&2
+            exit 1
+          fi
+
+          RESPONSE_BODY="$response_body" python3 - <<'PY'
+import json
+import os
+
+response = json.loads(os.environ["RESPONSE_BODY"])
+
+assert response["id"] == 1
+assert response["sample_count"] == 1
+assert len(response["order"]) == 19
+PY
+
+          echo "Docker smoke test passed."
