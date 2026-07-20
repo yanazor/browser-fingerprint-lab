@@ -1,5 +1,8 @@
 # Browser Fingerprint Lab
 
+[![Python checks](https://github.com/yanazor/browser-fingerprint-lab/actions/workflows/checks.yml/badge.svg?branch=main)](https://github.com/yanazor/browser-fingerprint-lab/actions/workflows/checks.yml)
+
+
 A cleaned public version of a bachelor-thesis prototype for collecting browser
 fingerprint attributes and exploring their categorical entropy.
 
